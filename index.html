@@ -3,153 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Canlı Yayın Paneli v2</title>
+    <title>Eightborn MultiLive v13 - Speed Fix</title>
     <style>
+        :root {
+            --bg-color: #0f0f0f;
+            --card-bg: #1e1e1e;
+            --accent-color: #4a4a4a;
+            --light-grey: #888;
+            --drawer-width: 320px;
+            --text-color: #e0e0e0;
+        }
+
         body {
-            background-color: #121212;
-            color: #fff;
-            font-family: sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 20px;
+            display: flex;
+            overflow-x: hidden;
         }
 
-        h2 {
-            text-align: center;
-            color: #ccc;
+        /* --- MENÜ BUTONU --- */
+        .btn-toggle {
+            background: rgba(30, 30, 30, 0.9);
+            color: white;
+            position: fixed;
+            top: 20px; left: 20px; z-index: 2000;
+            cursor: pointer; border-radius: 8px; width: 45px; height: 45px;
+            font-size: 24px; border: 1px solid #444;
+            /* Blur kaldırıldı, performans için */
+            transition: background 0.2s;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .btn-toggle:hover { background: var(--accent-color); border-color: var(--accent-color); }
+
+        /* --- DRAWER --- */
+        #drawer {
+            width: var(--drawer-width); height: 100vh; background: #121212;
+            position: fixed; left: calc(var(--drawer-width) * -1);
+            /* Animasyon süresi 0.3s'den 0.25s'e çekildi, daha seri hissettirir */
+            transition: left 0.25s ease-out;
+            z-index: 1000; border-right: 1px solid #333;
+            display: flex; flex-direction: column;
+            /* will-change: GPU'ya bu elementin hareket edeceğini önceden bildirir */
+            will-change: left;
+        }
+        #drawer.open { left: 0; }
+        .drawer-content { padding: 80px 20px 20px 20px; overflow-y: auto; }
+        h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #fff; }
+
+        /* --- OVERLAY (PERFORMANS İYİLEŞTİRMESİ) --- */
+        #overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); /* Sadece siyahlık, blur YOK */
+            z-index: 900;
+            opacity: 0;
+            visibility: hidden; /* Display none yerine visibility kullanmak daha performanslıdır */
+            transition: opacity 0.2s ease;
+            /* Blur efekti kaldırıldı */
         }
 
+        body.drawer-active #overlay {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex: 1;
+            padding: 20px 40px;
+            margin-top: 70px;
+        }
+
+        /* --- GRID SİSTEMİ --- */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
             gap: 20px;
+            padding-bottom: 50px;
         }
 
+        /* --- KART YAPISI --- */
         .card {
-            background: #1f1f1f;
-            border: 1px solid #333;
-            border-radius: 8px;
+            background: var(--card-bg);
+            border-radius: 12px;
             overflow: hidden;
+            border: 1px solid #333;
+            transition: all 0.3s ease; /* Kart animasyonları da hızlandırıldı */
             display: flex;
             flex-direction: column;
         }
 
-        .header {
-            padding: 10px;
-            background: #252525;
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            font-weight: bold;
+        /* ODAKLANILAN KART */
+        .card.active {
+            order: -1;
+            grid-column: 1 / -1;
+            width: 85%;
+            margin: 0 auto 40px auto;
+            border: 2px solid var(--accent-color);
+            z-index: 100;
         }
+
+        .header {
+            padding: 12px 15px; background: #252525;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            font-size: 14px; font-weight: 600; cursor: pointer;
+            border-bottom: 1px solid #333;
+        }
+        .header:hover { background: #333; }
+        .card.active .header { background: var(--accent-color); }
 
         .video-wrapper {
             position: relative;
-            padding-bottom: 56.25%; /* 16:9 */
-            height: 0;
+            width: 100%;
+            aspect-ratio: 16 / 9;
             background: #000;
         }
 
         iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;
         }
 
-        /* Video ID Elle Girme Alanı (Otomatik çalışmazsa diye) */
-        .manual-input {
-            padding: 10px;
-            display: flex;
-            gap: 5px;
-            background: #181818;
-        }
-
-        input {
-            background: #333;
-            border: none;
-            color: white;
-            padding: 5px;
-            width: 100%;
-            border-radius: 4px;
-        }
-
-        button {
-            background: #cc0000;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            cursor: pointer;
-            border-radius: 4px;
-        }
-
-            button:hover {
-                background: #ff0000;
-            }
-
-        .note {
-            font-size: 11px;
-            color: #777;
-            padding: 5px 10px;
-        }
+        /* --- FORM STİLLERİ --- */
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-size: 12px; color: #aaa; }
+        input[type="text"] { background: #222; border: 1px solid #444; color: white; padding: 10px; width: 100%; border-radius: 6px; box-sizing: border-box; outline: none; }
+        .btn { width: 100%; padding: 10px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+        .btn-add { background: var(--accent-color); color: white; }
+        .btn-add:hover { background: #5a5a5a; }
+        .channel-list-item { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 10px; margin-bottom: 8px; border-radius: 6px; }
+        .btn-delete { background: transparent; color: var(--light-grey); border: 1px solid var(--light-grey); padding: 5px 10px; cursor: pointer; transition: all 0.2s; }
+        .btn-delete:hover { background: var(--light-grey); color: #fff; border-color: var(--light-grey); }
     </style>
 </head>
 <body>
 
-    <h2>🎥 Canlı Yayın Takip Merkezi</h2>
+<button class="btn-toggle" onclick="toggleDrawer()">☰</button>
+<div id="overlay" onclick="toggleDrawer()"></div>
 
+<div id="drawer">
+    <div class="drawer-content">
+        <h3>⚙️ Panel Ayarları</h3>
+        <p style="font-size: 12px; color: #aaa;">
+            Yayın başlığına tıklayarak "Odak Modu"nu açıp kapatabilirsiniz.
+        </p>
+
+        <h3>📺 Kanal Yönetimi</h3>
+        <div class="input-group">
+            <label>Yayıncı İsmi</label>
+            <input type="text" id="chanName" placeholder="Örn: Niyantoo">
+        </div>
+        <div class="input-group">
+            <label>Kanal ID (UC...)</label>
+            <input type="text" id="chanId" placeholder="Örn: UCbx7...">
+        </div>
+        <button class="btn btn-add" onclick="addChannel()">Listeye Ekle</button>
+
+        <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
+        <div id="channelList"></div>
+    </div>
+</div>
+
+<div class="main-content">
     <div class="grid" id="container"></div>
+</div>
 
-    <script>
-        const channels = [
-            { name: "Niyantoo", id: "UCbx7M0pwBKxEKfHqP28R4ZA" },
-            { name: "Khonus", id: "UCs3th-mToB7w5ffvBH-97YA" },
-            { name: "Sergeant35", id: "UCHQBe54UVzn2rVHVBO1fDmA" }
-        ];
+<script>
+    const defaultChannels = [
+        { name: "Khonus", id: "UCs3th-mToB7w5ffvBH-97YA" },
+        { name: "Yusif Safarov", id: "UC2kycvhXmvbA09MWPGDFDoA" },
+        { name: "Sergeant35", id: "UCHQBe54UVzn2rVHVBO1fDmA" },
+        { name: "syichde", id: "UC5BPd3Zp80IKOCvSV8yWpzg" },
+        { name: "Nilay", id: "UCzaC5yXSkczTU6vPGP7YIwQ" },
+        { name: "Pammyyy", id: "UCsX2qg56Lq4BnpnkD25mRnQ" },
+        { name: "Niyantoo", id: "UCbx7M0pwBKxEKfHqP28R4ZA" },
+        { name: "Valiancys", id: "UCv0z4ePgLfvNpIuRtyrhFpg" },
+        { name: "Miray", id: "UC3yAvcwCHf0SSAVw71nTDTw" }
+    ];
 
+    let channels = JSON.parse(localStorage.getItem('eb_channels')) || defaultChannels;
+    let activeChannelId = null;
+
+    window.onload = function() { render(); };
+
+    document.addEventListener("visibilitychange", function() {
+        if (document.visibilityState === 'visible') {
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                const currentSrc = iframe.src;
+                iframe.src = currentSrc;
+            });
+        }
+    });
+
+    function toggleDrawer() {
+        const drawer = document.getElementById('drawer');
+        const body = document.body;
+        drawer.classList.toggle('open');
+        if(drawer.classList.contains('open')) body.classList.add('drawer-active');
+        else body.classList.remove('drawer-active');
+    }
+
+    function toggleActiveChannel(id) {
+        activeChannelId = (activeChannelId === id) ? null : id;
+        render();
+    }
+
+    function render() {
         const container = document.getElementById('container');
+        const list = document.getElementById('channelList');
 
+        list.innerHTML = '';
         channels.forEach((channel, index) => {
-            const card = document.createElement('div');
-            card.className = 'card';
-
-            // Benzersiz ID oluştur
-            const iframeId = `frame-${index}`;
-
-            card.innerHTML = `
-                    <div class="header">
-                        <span>${channel.name}</span>
-                        <span style="color:red">• CANLI (Otomatik)</span>
-                    </div>
-                    <div class="video-wrapper">
-                        <iframe
-                            id="${iframeId}"
-                            src="https://www.youtube.com/embed/live_stream?channel=${channel.id}&autoplay=1&mute=1"
-                            title="${channel.name}"
-                            frameborder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            referrerpolicy="strict-origin-when-cross-origin"
-                            allowfullscreen>
-                        </iframe>
-                    </div>
-                    <div class="note">Eğer video açılmazsa, aşağıdaki kutuya o anki videonun ID'sini yapıştırıp "Güncelle" deyin.</div>
-                    <div class="manual-input">
-                        <input type="text" placeholder="Video ID (örn: jNQXAC9IVRw)" id="input-${index}">
-                        <button onclick="updateVideo('${iframeId}', 'input-${index}')">Güncelle</button>
-                    </div>
-                `;
-            container.appendChild(card);
+            const item = document.createElement('div');
+            item.className = 'channel-list-item';
+            item.innerHTML = `
+                <div style="font-size:13px; font-weight:500;">${channel.name}</div>
+                <button class="btn-delete" onclick="deleteChannel(${index})">Sil</button>
+            `;
+            list.appendChild(item);
         });
 
-        // Manuel Video ID Güncelleme Fonksiyonu
-        function updateVideo(iframeId, inputId) {
-            const videoId = document.getElementById(inputId).value;
-            if (videoId) {
-                const frame = document.getElementById(iframeId);
-                frame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        const currentIds = channels.map(c => c.id);
+        document.querySelectorAll('.card').forEach(card => {
+            if (!currentIds.includes(card.getAttribute('data-id'))) card.remove();
+        });
+
+        channels.forEach(channel => {
+            let card = document.querySelector(`.card[data-id="${channel.id}"]`);
+            const isActive = (activeChannelId === channel.id);
+
+            if (!card) {
+                card = document.createElement('div');
+                card.className = 'card';
+                card.setAttribute('data-id', channel.id);
+                card.innerHTML = `
+                    <div class="header">
+                        <span class="title-text">${channel.name}</span>
+                    </div>
+                    <div class="video-wrapper">
+                         <iframe src="https://www.youtube.com/embed/live_stream?channel=${channel.id}&autoplay=1&mute=1" allowfullscreen></iframe>
+                    </div>
+                `;
+                container.appendChild(card);
+                card.querySelector('.header').onclick = () => toggleActiveChannel(channel.id);
             }
+
+            if (isActive) {
+                card.classList.add('active');
+            } else {
+                card.classList.remove('active');
+            }
+        });
+
+        localStorage.setItem('eb_channels', JSON.stringify(channels));
+    }
+
+    function addChannel() {
+        const name = document.getElementById('chanName').value;
+        const id = document.getElementById('chanId').value;
+        if(name && id) {
+            channels.push({name, id}); render();
+            document.getElementById('chanName').value = ''; document.getElementById('chanId').value = '';
         }
-    </script>
+    }
+
+    function deleteChannel(index) {
+        if(confirm('Silmek istediğine emin misin?')) {
+            const idToDelete = channels[index].id;
+            if (activeChannelId === idToDelete) activeChannelId = null;
+            channels.splice(index, 1);
+            render();
+        }
+    }
+</script>
 </body>
 </html>
