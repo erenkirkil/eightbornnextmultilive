@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eightborn MultiLive v14.1 - Safe Update</title>
+    <title>Eightborn MultiLive v14.4 - ID Sync</title>
     <style>
         :root {
             --bg-color: #0f0f0f;
@@ -50,17 +50,13 @@
         .drawer-content { padding: 80px 20px 20px 20px; overflow-y: auto; }
         h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #fff; }
 
-        /* --- SWITCH (OTO-YENİLEME) --- */
-        .setting-row {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; background: #1a1a1a; padding: 10px; border-radius: 6px;
-        }
-        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        /* --- SWITCH (ORTAK KULLANIM) --- */
+        .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
             position: absolute; cursor: pointer;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #555; transition: .4s; border-radius: 20px;
+            background-color: #444; transition: .4s; border-radius: 20px;
         }
         .slider:before {
             position: absolute; content: "";
@@ -68,7 +64,13 @@
             background-color: white; transition: .4s; border-radius: 50%;
         }
         input:checked + .slider { background-color: var(--active-green); }
-        input:checked + .slider:before { transform: translateX(20px); }
+        input:checked + .slider:before { transform: translateX(16px); }
+
+        /* Ayarlar satırı */
+        .setting-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; background: #1a1a1a; padding: 10px; border-radius: 6px;
+        }
 
         /* --- LISTE ÖĞELERİ --- */
         .channel-list-item {
@@ -84,20 +86,15 @@
         .channel-list-item.passive { opacity: 0.6; background: #141414; }
         .channel-list-item.passive .name-text { text-decoration: line-through; color: #777; }
 
-        .item-actions { display: flex; gap: 8px; }
+        .item-actions { display: flex; gap: 10px; align-items: center; }
 
         /* --- BUTONLAR --- */
         .btn-icon {
             background: transparent; border: 1px solid #444; color: #aaa;
-            width: 30px; height: 30px; border-radius: 4px; cursor: pointer;
+            width: 28px; height: 28px; border-radius: 4px; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             font-size: 14px; transition: all 0.2s;
         }
-        .btn-icon:hover { background: #333; color: white; }
-
-        .btn-visible.active { background: rgba(46, 125, 50, 0.2); color: #66bb6a; border-color: #2e7d32; }
-        .btn-visible.passive { background: rgba(0,0,0,0.2); color: #555; }
-
         .btn-delete:hover { border-color: #d32f2f; color: #d32f2f; background: rgba(211, 47, 47, 0.1); }
 
         /* --- OVERLAY --- */
@@ -169,12 +166,12 @@
 
         <h3>📺 Kanal Yönetimi</h3>
         <p style="font-size: 11px; color: #aaa; margin-bottom: 10px;">
-            Sıralamak için sürükleyin, gizlemek için göze tıklayın.
+            Sıralamak için sürükleyin, gizlemek için anahtarı kullanın.
         </p>
 
         <div class="input-group">
             <label>Yayıncı İsmi</label>
-            <input type="text" id="chanName" placeholder="Örn: Niyantoo">
+            <input type="text" id="chanName" placeholder="Örn: Kanal Adı">
         </div>
         <div class="input-group">
             <label>Kanal ID (UC...)</label>
@@ -192,9 +189,7 @@
 </div>
 
 <script>
-    // --- GÜVENLİ VERİ YÖNETİMİ ---
-
-    // Varsayılan listemiz (Sadece ilk girişte veya veri bozulursa kullanılır)
+    // --- YAYINCI LİSTESİ ---
     const defaultChannels = [
         { name: "Khonus", id: "UCs3th-mToB7w5ffvBH-97YA", visible: true },
         { name: "Yusif Safarov", id: "UC2kycvhXmvbA09MWPGDFDoA", visible: true },
@@ -203,42 +198,53 @@
         { name: "Nilay", id: "UCzaC5yXSkczTU6vPGP7YIwQ", visible: true },
         { name: "Pammyyy", id: "UCsX2qg56Lq4BnpnkD25mRnQ", visible: true },
         { name: "Niyantoo", id: "UCbx7M0pwBKxEKfHqP28R4ZA", visible: true },
+        { name: "Valiancys", id: "UCv0z4ePgLfvNpIuRtyrhFpg", visible: true },
         { name: "Miray", id: "UC3yAvcwCHf0SSAVw71nTDTw", visible: true }
     ];
 
     let channels = [];
     let activeChannelId = null;
-    let autoRefreshEnabled = localStorage.getItem('eb_auto_refresh') !== 'false';
+    let autoRefreshEnabled = localStorage.getItem('eb_auto_refresh') === 'true';
 
-    // --- BAŞLANGIÇ YÜKLEME MANTIĞI (GÜNCELLENDİ) ---
     function initData() {
         const storedData = localStorage.getItem('eb_channels');
-
         if (storedData) {
-            // Kullanıcının verisi var, onu kullan
             try {
-                channels = JSON.parse(storedData);
+                // Kullanıcının mevcut listesini al
+                let userChannels = JSON.parse(storedData);
 
-                // MIGRATION (VERİ ONARMA):
-                // Eğer eski veride 'visible' özelliği yoksa, veriyi silmek yerine özelliği ekle.
-                channels = channels.map(c => ({
-                    ...c,
-                    visible: (c.visible !== undefined) ? c.visible : true // Yoksa true yap
-                }));
+                // --- 1. ADIM: MEVCUT LİSTEYİ GÜNCELLE ---
+                // Kullanıcının listesini dön, eğer ID bizim defaultChannels'da varsa,
+                // İSMİNİ bizim listeden alıp güncelle (Sen isim değiştirirsen yansısın diye).
+                userChannels.forEach(userChan => {
+                    const match = defaultChannels.find(def => def.id === userChan.id);
+                    if (match) {
+                        userChan.name = match.name; // İsmi koddan zorla güncelle
+                        // userChan.visible özelliği kullanıcının tercihidir, dokunma.
+                    }
+                    // Eğer visible özelliği hiç yoksa (eski veri), varsayılan true yap
+                    if (userChan.visible === undefined) userChan.visible = true;
+                });
 
-                console.log("Kullanıcı verisi yüklendi ve onarıldı.");
+                // --- 2. ADIM: YENİ KANALLARI EKLE ---
+                // Bizim listemizde olup, kullanıcının listesinde HİÇ olmayan (ID bazlı) kanalları bul.
+                const newChannels = defaultChannels.filter(def =>
+                    !userChannels.some(userChan => userChan.id === def.id)
+                );
+
+                // Yeni kanalları kullanıcının listesinin sonuna ekle
+                // (Spread operatörü ile birleştiriyoruz)
+                channels = [...userChannels, ...newChannels];
+
             } catch (e) {
-                // Veri bozuksa varsayılanları yükle
-                console.error("Veri hatası, varsayılanlar yüklendi.");
+                // Veri bozuksa sıfırla
                 channels = JSON.parse(JSON.stringify(defaultChannels));
             }
         } else {
-            // Hiç veri yok (İlk giriş), varsayılanları yükle
+            // İlk giriş
             channels = JSON.parse(JSON.stringify(defaultChannels));
-            console.log("İlk giriş, varsayılan liste yüklendi.");
         }
 
-        // Güncel hali kaydet
         saveData();
     }
 
@@ -251,8 +257,6 @@
         document.getElementById('autoRefreshToggle').checked = autoRefreshEnabled;
         render();
     };
-
-    // --- FONKSİYONLAR ---
 
     function toggleAutoRefresh() {
         autoRefreshEnabled = document.getElementById('autoRefreshToggle').checked;
@@ -285,7 +289,7 @@
             activeChannelId = null;
         }
         render();
-        saveData(); // Kaydet
+        saveData();
     }
 
     // --- DRAG & DROP ---
@@ -308,11 +312,10 @@
                     <span class="name-text" style="font-size:13px; font-weight:500; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${channel.name}</span>
                 </div>
                 <div class="item-actions">
-                    <button class="btn-icon btn-visible ${channel.visible ? 'active' : 'passive'}"
-                            onclick="toggleVisibility(${index})"
-                            title="${channel.visible ? 'Gizle' : 'Göster'}">
-                        ${channel.visible ? '👁️' : '✕'}
-                    </button>
+                    <label class="switch" title="${channel.visible ? 'Gizle' : 'Göster'}">
+                        <input type="checkbox" onchange="toggleVisibility(${index})" ${channel.visible ? 'checked' : ''}>
+                        <span class="slider"></span>
+                    </label>
                     <button class="btn-icon btn-delete" onclick="deleteChannel(${index})" title="Sil">🗑️</button>
                 </div>
             `;
@@ -363,9 +366,6 @@
                 card.classList.remove('active');
             }
         });
-
-        // Burada kaydetmeye gerek yok, render sadece görüntüleme işi yapmalı.
-        // Veri değişimi (delete, add, toggle) olduğunda saveData çağırıyoruz zaten.
     }
 
     function dragStart() {
@@ -385,7 +385,7 @@
         const item = channels[fromIndex];
         channels.splice(fromIndex, 1);
         channels.splice(toIndex, 0, item);
-        saveData(); // Sıralama değişince kaydet
+        saveData();
         render();
     }
 
@@ -394,7 +394,7 @@
         const id = document.getElementById('chanId').value;
         if(name && id) {
             channels.push({name, id, visible: true});
-            saveData(); // Yeni kanal eklenince kaydet
+            saveData();
             render();
             document.getElementById('chanName').value = ''; document.getElementById('chanId').value = '';
         }
@@ -405,7 +405,7 @@
             const idToDelete = channels[index].id;
             if (activeChannelId === idToDelete) activeChannelId = null;
             channels.splice(index, 1);
-            saveData(); // Silinince kaydet
+            saveData();
             render();
         }
     }
