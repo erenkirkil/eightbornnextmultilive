@@ -1,0 +1,155 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Canlı Yayın Paneli v2</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #fff;
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #ccc;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: #1f1f1f;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            padding: 10px;
+            background: #252525;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 */
+            height: 0;
+            background: #000;
+        }
+
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Video ID Elle Girme Alanı (Otomatik çalışmazsa diye) */
+        .manual-input {
+            padding: 10px;
+            display: flex;
+            gap: 5px;
+            background: #181818;
+        }
+
+        input {
+            background: #333;
+            border: none;
+            color: white;
+            padding: 5px;
+            width: 100%;
+            border-radius: 4px;
+        }
+
+        button {
+            background: #cc0000;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+            button:hover {
+                background: #ff0000;
+            }
+
+        .note {
+            font-size: 11px;
+            color: #777;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🎥 Canlı Yayın Takip Merkezi</h2>
+
+    <div class="grid" id="container"></div>
+
+    <script>
+        const channels = [
+            { name: "Niyantoo", id: "UCbx7M0pwBKxEKfHqP28R4ZA" },
+            { name: "Khonus", id: "UCs3th-mToB7w5ffvBH-97YA" },
+            { name: "Sergeant35", id: "UCHQBe54UVzn2rVHVBO1fDmA" }
+        ];
+
+        const container = document.getElementById('container');
+
+        channels.forEach((channel, index) => {
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            // Benzersiz ID oluştur
+            const iframeId = `frame-${index}`;
+
+            card.innerHTML = `
+                    <div class="header">
+                        <span>${channel.name}</span>
+                        <span style="color:red">• CANLI (Otomatik)</span>
+                    </div>
+                    <div class="video-wrapper">
+                        <iframe
+                            id="${iframeId}"
+                            src="https://www.youtube.com/embed/live_stream?channel=${channel.id}&autoplay=1&mute=1"
+                            title="${channel.name}"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                    <div class="note">Eğer video açılmazsa, aşağıdaki kutuya o anki videonun ID'sini yapıştırıp "Güncelle" deyin.</div>
+                    <div class="manual-input">
+                        <input type="text" placeholder="Video ID (örn: jNQXAC9IVRw)" id="input-${index}">
+                        <button onclick="updateVideo('${iframeId}', 'input-${index}')">Güncelle</button>
+                    </div>
+                `;
+            container.appendChild(card);
+        });
+
+        // Manuel Video ID Güncelleme Fonksiyonu
+        function updateVideo(iframeId, inputId) {
+            const videoId = document.getElementById(inputId).value;
+            if (videoId) {
+                const frame = document.getElementById(iframeId);
+                frame.src = `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+            }
+        }
+    </script>
+</body>
+</html>
