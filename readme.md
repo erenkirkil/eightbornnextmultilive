@@ -1,12 +1,16 @@
 # Eightborn MultiLive
 
+https://erenkirkil.github.io/eightbornnextmultilive/
+
 Bu proje, Eightborn V sunucusundaki yayıncıları tek bir ekranda toplu halde (Multi-POV) izleyebilmek için geliştirilmiş minimalist bir web arayüzüdür.
 
 ## ⚠️ Önemli Uyarı
 
 > **"Bu proje hiçbir şekilde para amacı gütmez. Sadece çoklu povları daha rahat izlemek adına tasarlanmıştır."**
 
-Bu proje tamamen açık kaynaklıdır, reklam içermez ve herhangi bir gelir modeli bulunmamaktadır. Tüm yayın içerikleri YouTube üzerinden embed (gömülü) oynatıcı aracılığıyla sağlanmakta olup, izlemeler doğrudan ilgili yayıncının kanal istatistiklerine yansımaktadır.
+Bu proje tamamen açık kaynaklıdır, reklam içermez ve herhangi bir gelir modeli bulunmamaktadır. Tüm yayın içerikleri YouTube üzerinden embed (gömülü) oynatıcı aracılığıyla sağlanmakta olup, izlemeler doğrudan ilgili yayıncının kanal istatistiklerine yansımaktadır. 
+
+Ayrıca default gelen kanallar sık izlediğim kanallar olup, sizler istediğiniz şekilde değiştirebilirsiniz.
 
 ## Özellikler
 

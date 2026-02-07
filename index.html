@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eightborn MultiLive v13 - Speed Fix</title>
+    <title>Eightborn MultiLive v14.1 - Safe Update</title>
     <style>
         :root {
             --bg-color: #0f0f0f;
@@ -12,6 +12,7 @@
             --light-grey: #888;
             --drawer-width: 320px;
             --text-color: #e0e0e0;
+            --active-green: #2e7d32;
         }
 
         body {
@@ -31,7 +32,6 @@
             top: 20px; left: 20px; z-index: 2000;
             cursor: pointer; border-radius: 8px; width: 45px; height: 45px;
             font-size: 24px; border: 1px solid #444;
-            /* Blur kaldırıldı, performans için */
             transition: background 0.2s;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
@@ -41,102 +41,114 @@
         #drawer {
             width: var(--drawer-width); height: 100vh; background: #121212;
             position: fixed; left: calc(var(--drawer-width) * -1);
-            /* Animasyon süresi 0.3s'den 0.25s'e çekildi, daha seri hissettirir */
             transition: left 0.25s ease-out;
             z-index: 1000; border-right: 1px solid #333;
             display: flex; flex-direction: column;
-            /* will-change: GPU'ya bu elementin hareket edeceğini önceden bildirir */
             will-change: left;
         }
         #drawer.open { left: 0; }
         .drawer-content { padding: 80px 20px 20px 20px; overflow-y: auto; }
         h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #fff; }
 
-        /* --- OVERLAY (PERFORMANS İYİLEŞTİRMESİ) --- */
-        #overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5); /* Sadece siyahlık, blur YOK */
-            z-index: 900;
-            opacity: 0;
-            visibility: hidden; /* Display none yerine visibility kullanmak daha performanslıdır */
-            transition: opacity 0.2s ease;
-            /* Blur efekti kaldırıldı */
+        /* --- SWITCH (OTO-YENİLEME) --- */
+        .setting-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; background: #1a1a1a; padding: 10px; border-radius: 6px;
         }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #555; transition: .4s; border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute; content: "";
+            height: 14px; width: 14px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: var(--active-green); }
+        input:checked + .slider:before { transform: translateX(20px); }
 
-        body.drawer-active #overlay {
-            opacity: 1;
-            visibility: visible;
+        /* --- LISTE ÖĞELERİ --- */
+        .channel-list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #1a1a1a; padding: 8px 10px; margin-bottom: 8px; border-radius: 6px;
+            cursor: grab; border: 1px solid transparent;
+            transition: all 0.2s;
         }
+        .channel-list-item:active { cursor: grabbing; }
+        .channel-list-item.dragging { opacity: 0.5; border: 1px dashed #666; background: #222; }
+        .channel-list-item.drag-over { border-bottom: 2px solid var(--accent-color); }
+
+        .channel-list-item.passive { opacity: 0.6; background: #141414; }
+        .channel-list-item.passive .name-text { text-decoration: line-through; color: #777; }
+
+        .item-actions { display: flex; gap: 8px; }
+
+        /* --- BUTONLAR --- */
+        .btn-icon {
+            background: transparent; border: 1px solid #444; color: #aaa;
+            width: 30px; height: 30px; border-radius: 4px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; transition: all 0.2s;
+        }
+        .btn-icon:hover { background: #333; color: white; }
+
+        .btn-visible.active { background: rgba(46, 125, 50, 0.2); color: #66bb6a; border-color: #2e7d32; }
+        .btn-visible.passive { background: rgba(0,0,0,0.2); color: #555; }
+
+        .btn-delete:hover { border-color: #d32f2f; color: #d32f2f; background: rgba(211, 47, 47, 0.1); }
+
+        /* --- OVERLAY --- */
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); z-index: 900;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.2s ease;
+        }
+        body.drawer-active #overlay { opacity: 1; visibility: visible; }
 
         /* --- MAIN CONTENT --- */
-        .main-content {
-            flex: 1;
-            padding: 20px 40px;
-            margin-top: 70px;
-        }
+        .main-content { flex: 1; padding: 20px 40px; margin-top: 70px; }
 
-        /* --- GRID SİSTEMİ --- */
+        /* --- GRID --- */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 20px;
-            padding-bottom: 50px;
+            gap: 20px; padding-bottom: 50px;
         }
 
-        /* --- KART YAPISI --- */
+        /* --- KART --- */
         .card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid #333;
-            transition: all 0.3s ease; /* Kart animasyonları da hızlandırıldı */
-            display: flex;
-            flex-direction: column;
+            background: var(--card-bg); border-radius: 12px; overflow: hidden;
+            border: 1px solid #333; transition: all 0.3s ease;
+            display: flex; flex-direction: column;
         }
-
-        /* ODAKLANILAN KART */
         .card.active {
-            order: -1;
-            grid-column: 1 / -1;
-            width: 85%;
-            margin: 0 auto 40px auto;
-            border: 2px solid var(--accent-color);
-            z-index: 100;
+            order: -1; grid-column: 1 / -1; width: 85%; margin: 0 auto 40px auto;
+            border: 2px solid var(--accent-color); z-index: 100;
         }
 
         .header {
             padding: 12px 15px; background: #252525;
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
+            display: flex; justify-content: flex-start; align-items: center;
             font-size: 14px; font-weight: 600; cursor: pointer;
             border-bottom: 1px solid #333;
         }
         .header:hover { background: #333; }
         .card.active .header { background: var(--accent-color); }
 
-        .video-wrapper {
-            position: relative;
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            background: #000;
-        }
+        .video-wrapper { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; }
+        iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
 
-        iframe {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;
-        }
-
-        /* --- FORM STİLLERİ --- */
+        /* --- FORM --- */
         .input-group { margin-bottom: 15px; }
         .input-group label { display: block; margin-bottom: 5px; font-size: 12px; color: #aaa; }
         input[type="text"] { background: #222; border: 1px solid #444; color: white; padding: 10px; width: 100%; border-radius: 6px; box-sizing: border-box; outline: none; }
         .btn { width: 100%; padding: 10px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; transition: background 0.2s; }
         .btn-add { background: var(--accent-color); color: white; }
         .btn-add:hover { background: #5a5a5a; }
-        .channel-list-item { display: flex; justify-content: space-between; align-items: center; background: #1a1a1a; padding: 10px; margin-bottom: 8px; border-radius: 6px; }
-        .btn-delete { background: transparent; color: var(--light-grey); border: 1px solid var(--light-grey); padding: 5px 10px; cursor: pointer; transition: all 0.2s; }
-        .btn-delete:hover { background: var(--light-grey); color: #fff; border-color: var(--light-grey); }
     </style>
 </head>
 <body>
@@ -146,12 +158,20 @@
 
 <div id="drawer">
     <div class="drawer-content">
-        <h3>⚙️ Panel Ayarları</h3>
-        <p style="font-size: 12px; color: #aaa;">
-            Yayın başlığına tıklayarak "Odak Modu"nu açıp kapatabilirsiniz.
-        </p>
+        <h3>⚙️ Ayarlar</h3>
+        <div class="setting-row">
+            <span style="font-size: 13px;">Oto-Yenileme (Sekme Geçişi)</span>
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshToggle" onchange="toggleAutoRefresh()">
+                <span class="slider"></span>
+            </label>
+        </div>
 
         <h3>📺 Kanal Yönetimi</h3>
+        <p style="font-size: 11px; color: #aaa; margin-bottom: 10px;">
+            Sıralamak için sürükleyin, gizlemek için göze tıklayın.
+        </p>
+
         <div class="input-group">
             <label>Yayıncı İsmi</label>
             <input type="text" id="chanName" placeholder="Örn: Niyantoo">
@@ -172,30 +192,77 @@
 </div>
 
 <script>
+    // --- GÜVENLİ VERİ YÖNETİMİ ---
+
+    // Varsayılan listemiz (Sadece ilk girişte veya veri bozulursa kullanılır)
     const defaultChannels = [
-        { name: "Khonus", id: "UCs3th-mToB7w5ffvBH-97YA" },
-        { name: "Yusif Safarov", id: "UC2kycvhXmvbA09MWPGDFDoA" },
-        { name: "Sergeant35", id: "UCHQBe54UVzn2rVHVBO1fDmA" },
-        { name: "syichde", id: "UC5BPd3Zp80IKOCvSV8yWpzg" },
-        { name: "Nilay", id: "UCzaC5yXSkczTU6vPGP7YIwQ" },
-        { name: "Pammyyy", id: "UCsX2qg56Lq4BnpnkD25mRnQ" },
-        { name: "Niyantoo", id: "UCbx7M0pwBKxEKfHqP28R4ZA" },
-        { name: "Valiancys", id: "UCv0z4ePgLfvNpIuRtyrhFpg" },
-        { name: "Miray", id: "UC3yAvcwCHf0SSAVw71nTDTw" }
+        { name: "Khonus", id: "UCs3th-mToB7w5ffvBH-97YA", visible: true },
+        { name: "Yusif Safarov", id: "UC2kycvhXmvbA09MWPGDFDoA", visible: true },
+        { name: "Sergeant35", id: "UCHQBe54UVzn2rVHVBO1fDmA", visible: true },
+        { name: "syichde", id: "UC5BPd3Zp80IKOCvSV8yWpzg", visible: true },
+        { name: "Nilay", id: "UCzaC5yXSkczTU6vPGP7YIwQ", visible: true },
+        { name: "Pammyyy", id: "UCsX2qg56Lq4BnpnkD25mRnQ", visible: true },
+        { name: "Niyantoo", id: "UCbx7M0pwBKxEKfHqP28R4ZA", visible: true },
+        { name: "Miray", id: "UC3yAvcwCHf0SSAVw71nTDTw", visible: true }
     ];
 
-    let channels = JSON.parse(localStorage.getItem('eb_channels')) || defaultChannels;
+    let channels = [];
     let activeChannelId = null;
+    let autoRefreshEnabled = localStorage.getItem('eb_auto_refresh') !== 'false';
 
-    window.onload = function() { render(); };
+    // --- BAŞLANGIÇ YÜKLEME MANTIĞI (GÜNCELLENDİ) ---
+    function initData() {
+        const storedData = localStorage.getItem('eb_channels');
+
+        if (storedData) {
+            // Kullanıcının verisi var, onu kullan
+            try {
+                channels = JSON.parse(storedData);
+
+                // MIGRATION (VERİ ONARMA):
+                // Eğer eski veride 'visible' özelliği yoksa, veriyi silmek yerine özelliği ekle.
+                channels = channels.map(c => ({
+                    ...c,
+                    visible: (c.visible !== undefined) ? c.visible : true // Yoksa true yap
+                }));
+
+                console.log("Kullanıcı verisi yüklendi ve onarıldı.");
+            } catch (e) {
+                // Veri bozuksa varsayılanları yükle
+                console.error("Veri hatası, varsayılanlar yüklendi.");
+                channels = JSON.parse(JSON.stringify(defaultChannels));
+            }
+        } else {
+            // Hiç veri yok (İlk giriş), varsayılanları yükle
+            channels = JSON.parse(JSON.stringify(defaultChannels));
+            console.log("İlk giriş, varsayılan liste yüklendi.");
+        }
+
+        // Güncel hali kaydet
+        saveData();
+    }
+
+    function saveData() {
+        localStorage.setItem('eb_channels', JSON.stringify(channels));
+    }
+
+    window.onload = function() {
+        initData();
+        document.getElementById('autoRefreshToggle').checked = autoRefreshEnabled;
+        render();
+    };
+
+    // --- FONKSİYONLAR ---
+
+    function toggleAutoRefresh() {
+        autoRefreshEnabled = document.getElementById('autoRefreshToggle').checked;
+        localStorage.setItem('eb_auto_refresh', autoRefreshEnabled);
+    }
 
     document.addEventListener("visibilitychange", function() {
-        if (document.visibilityState === 'visible') {
+        if (document.visibilityState === 'visible' && autoRefreshEnabled) {
             const iframes = document.querySelectorAll('iframe');
-            iframes.forEach(iframe => {
-                const currentSrc = iframe.src;
-                iframe.src = currentSrc;
-            });
+            iframes.forEach(iframe => { iframe.src = iframe.src; });
         }
     });
 
@@ -212,6 +279,18 @@
         render();
     }
 
+    function toggleVisibility(index) {
+        channels[index].visible = !channels[index].visible;
+        if (!channels[index].visible && activeChannelId === channels[index].id) {
+            activeChannelId = null;
+        }
+        render();
+        saveData(); // Kaydet
+    }
+
+    // --- DRAG & DROP ---
+    let dragStartIndex;
+
     function render() {
         const container = document.getElementById('container');
         const list = document.getElementById('channelList');
@@ -219,20 +298,44 @@
         list.innerHTML = '';
         channels.forEach((channel, index) => {
             const item = document.createElement('div');
-            item.className = 'channel-list-item';
+            item.className = `channel-list-item ${!channel.visible ? 'passive' : ''}`;
+            item.draggable = true;
+            item.dataset.index = index;
+
             item.innerHTML = `
-                <div style="font-size:13px; font-weight:500;">${channel.name}</div>
-                <button class="btn-delete" onclick="deleteChannel(${index})">Sil</button>
+                <div style="display:flex; align-items:center; flex:1; overflow:hidden;">
+                    <span style="color:#666; margin-right:8px; cursor:grab;">☰</span>
+                    <span class="name-text" style="font-size:13px; font-weight:500; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${channel.name}</span>
+                </div>
+                <div class="item-actions">
+                    <button class="btn-icon btn-visible ${channel.visible ? 'active' : 'passive'}"
+                            onclick="toggleVisibility(${index})"
+                            title="${channel.visible ? 'Gizle' : 'Göster'}">
+                        ${channel.visible ? '👁️' : '✕'}
+                    </button>
+                    <button class="btn-icon btn-delete" onclick="deleteChannel(${index})" title="Sil">🗑️</button>
+                </div>
             `;
+
+            item.addEventListener('dragstart', dragStart);
+            item.addEventListener('dragover', dragOver);
+            item.addEventListener('drop', drop);
+            item.addEventListener('dragenter', dragEnter);
+            item.addEventListener('dragleave', dragLeave);
+
             list.appendChild(item);
         });
 
-        const currentIds = channels.map(c => c.id);
+        const visibleIds = channels.filter(c => c.visible).map(c => c.id);
+
         document.querySelectorAll('.card').forEach(card => {
-            if (!currentIds.includes(card.getAttribute('data-id'))) card.remove();
+            const cardId = card.getAttribute('data-id');
+            if (!visibleIds.includes(cardId)) { card.remove(); }
         });
 
         channels.forEach(channel => {
+            if (!channel.visible) return;
+
             let card = document.querySelector(`.card[data-id="${channel.id}"]`);
             const isActive = (activeChannelId === channel.id);
 
@@ -250,6 +353,8 @@
                 `;
                 container.appendChild(card);
                 card.querySelector('.header').onclick = () => toggleActiveChannel(channel.id);
+            } else {
+                container.appendChild(card);
             }
 
             if (isActive) {
@@ -259,14 +364,38 @@
             }
         });
 
-        localStorage.setItem('eb_channels', JSON.stringify(channels));
+        // Burada kaydetmeye gerek yok, render sadece görüntüleme işi yapmalı.
+        // Veri değişimi (delete, add, toggle) olduğunda saveData çağırıyoruz zaten.
+    }
+
+    function dragStart() {
+        dragStartIndex = +this.closest('.channel-list-item').dataset.index;
+        this.classList.add('dragging');
+    }
+    function dragOver(e) { e.preventDefault(); }
+    function dragEnter() { this.classList.add('drag-over'); }
+    function dragLeave() { this.classList.remove('drag-over'); }
+    function drop() {
+        const dragEndIndex = +this.dataset.index;
+        swapItems(dragStartIndex, dragEndIndex);
+        this.classList.remove('drag-over');
+        this.classList.remove('dragging');
+    }
+    function swapItems(fromIndex, toIndex) {
+        const item = channels[fromIndex];
+        channels.splice(fromIndex, 1);
+        channels.splice(toIndex, 0, item);
+        saveData(); // Sıralama değişince kaydet
+        render();
     }
 
     function addChannel() {
         const name = document.getElementById('chanName').value;
         const id = document.getElementById('chanId').value;
         if(name && id) {
-            channels.push({name, id}); render();
+            channels.push({name, id, visible: true});
+            saveData(); // Yeni kanal eklenince kaydet
+            render();
             document.getElementById('chanName').value = ''; document.getElementById('chanId').value = '';
         }
     }
@@ -276,6 +405,7 @@
             const idToDelete = channels[index].id;
             if (activeChannelId === idToDelete) activeChannelId = null;
             channels.splice(index, 1);
+            saveData(); // Silinince kaydet
             render();
         }
     }
