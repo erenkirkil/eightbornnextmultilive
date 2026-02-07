@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eightborn MultiLive v14.4 - ID Sync</title>
+    <title>Eightborn Next MultiLive v15.0</title>
     <style>
         :root {
             --bg-color: #0f0f0f;
@@ -37,20 +37,23 @@
         }
         .btn-toggle:hover { background: var(--accent-color); border-color: var(--accent-color); }
 
-        /* --- DRAWER --- */
+        /* --- DRAWER (GPU OPTİMİZE EDİLDİ) --- */
         #drawer {
             width: var(--drawer-width); height: 100vh; background: #121212;
-            position: fixed; left: calc(var(--drawer-width) * -1);
-            transition: left 0.25s ease-out;
+            position: fixed; top: 0; left: 0; /* Left sabit kalır */
+            /* Performans için transform kullanılır */
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1000; border-right: 1px solid #333;
             display: flex; flex-direction: column;
-            will-change: left;
+            will-change: transform; /* Tarayıcıya ipucu */
         }
-        #drawer.open { left: 0; }
+        #drawer.open { transform: translateX(0); }
+
         .drawer-content { padding: 80px 20px 20px 20px; overflow-y: auto; }
         h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #fff; }
 
-        /* --- SWITCH (ORTAK KULLANIM) --- */
+        /* --- SWITCH --- */
         .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider {
@@ -66,7 +69,6 @@
         input:checked + .slider { background-color: var(--active-green); }
         input:checked + .slider:before { transform: translateX(16px); }
 
-        /* Ayarlar satırı */
         .setting-row {
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 20px; background: #1a1a1a; padding: 10px; border-radius: 6px;
@@ -82,10 +84,8 @@
         .channel-list-item:active { cursor: grabbing; }
         .channel-list-item.dragging { opacity: 0.5; border: 1px dashed #666; background: #222; }
         .channel-list-item.drag-over { border-bottom: 2px solid var(--accent-color); }
-
         .channel-list-item.passive { opacity: 0.6; background: #141414; }
         .channel-list-item.passive .name-text { text-decoration: line-through; color: #777; }
-
         .item-actions { display: flex; gap: 10px; align-items: center; }
 
         /* --- BUTONLAR --- */
@@ -121,6 +121,8 @@
             background: var(--card-bg); border-radius: 12px; overflow: hidden;
             border: 1px solid #333; transition: all 0.3s ease;
             display: flex; flex-direction: column;
+            /* İçerik değişince repaint'i azalt */
+            contain: content;
         }
         .card.active {
             order: -1; grid-column: 1 / -1; width: 85%; margin: 0 auto 40px auto;
@@ -209,45 +211,35 @@
     let activeChannelId = null;
     let autoRefreshEnabled = localStorage.getItem('eb_auto_refresh') === 'true';
 
+    // --- BAŞLATMA VE ID EŞLEŞTİRME ---
     function initData() {
         const storedData = localStorage.getItem('eb_channels');
         if (storedData) {
             try {
-                // Kullanıcının mevcut listesini al
                 let userChannels = JSON.parse(storedData);
 
-                // --- 1. ADIM: MEVCUT LİSTEYİ GÜNCELLE ---
-                // Kullanıcının listesini dön, eğer ID bizim defaultChannels'da varsa,
-                // İSMİNİ bizim listeden alıp güncelle (Sen isim değiştirirsen yansısın diye).
+                // 1. İsim ve ID Güncellemelerini Uygula (Sync)
                 userChannels.forEach(userChan => {
                     const match = defaultChannels.find(def => def.id === userChan.id);
                     if (match) {
-                        userChan.name = match.name; // İsmi koddan zorla güncelle
-                        // userChan.visible özelliği kullanıcının tercihidir, dokunma.
+                        userChan.name = match.name; // İsmi güncelle
                     }
-                    // Eğer visible özelliği hiç yoksa (eski veri), varsayılan true yap
                     if (userChan.visible === undefined) userChan.visible = true;
                 });
 
-                // --- 2. ADIM: YENİ KANALLARI EKLE ---
-                // Bizim listemizde olup, kullanıcının listesinde HİÇ olmayan (ID bazlı) kanalları bul.
+                // 2. Yeni Kanalları Ekle
                 const newChannels = defaultChannels.filter(def =>
                     !userChannels.some(userChan => userChan.id === def.id)
                 );
 
-                // Yeni kanalları kullanıcının listesinin sonuna ekle
-                // (Spread operatörü ile birleştiriyoruz)
                 channels = [...userChannels, ...newChannels];
 
             } catch (e) {
-                // Veri bozuksa sıfırla
                 channels = JSON.parse(JSON.stringify(defaultChannels));
             }
         } else {
-            // İlk giriş
             channels = JSON.parse(JSON.stringify(defaultChannels));
         }
-
         saveData();
     }
 
@@ -266,10 +258,17 @@
         localStorage.setItem('eb_auto_refresh', autoRefreshEnabled);
     }
 
+    // --- PERFORMANS OPTİMİZASYONU: KADEMELİ YENİLEME ---
     document.addEventListener("visibilitychange", function() {
         if (document.visibilityState === 'visible' && autoRefreshEnabled) {
             const iframes = document.querySelectorAll('iframe');
-            iframes.forEach(iframe => { iframe.src = iframe.src; });
+            iframes.forEach((iframe, index) => {
+                // Hepsi aynı anda yüklenmesin, 200ms arayla yenile
+                setTimeout(() => {
+                    const currentSrc = iframe.src;
+                    iframe.src = currentSrc;
+                }, index * 200);
+            });
         }
     });
 
@@ -302,6 +301,7 @@
         const container = document.getElementById('container');
         const list = document.getElementById('channelList');
 
+        // Liste Render (Sidebar)
         list.innerHTML = '';
         channels.forEach((channel, index) => {
             const item = document.createElement('div');
@@ -332,13 +332,16 @@
             list.appendChild(item);
         });
 
+        // Grid Render (Main Content)
         const visibleIds = channels.filter(c => c.visible).map(c => c.id);
 
+        // Temizlik: Görünür olmayanları DOM'dan kaldır
         document.querySelectorAll('.card').forEach(card => {
             const cardId = card.getAttribute('data-id');
             if (!visibleIds.includes(cardId)) { card.remove(); }
         });
 
+        // Ekleme/Güncelleme
         channels.forEach(channel => {
             if (!channel.visible) return;
 
@@ -349,18 +352,23 @@
                 card = document.createElement('div');
                 card.className = 'card';
                 card.setAttribute('data-id', channel.id);
+                // PERFORMANS: loading="lazy" eklendi
                 card.innerHTML = `
                     <div class="header">
                         <span class="title-text">${channel.name}</span>
                     </div>
                     <div class="video-wrapper">
-                         <iframe src="https://www.youtube.com/embed/live_stream?channel=${channel.id}&autoplay=1&mute=1" allowfullscreen></iframe>
+                         <iframe
+                            src="https://www.youtube.com/embed/live_stream?channel=${channel.id}&autoplay=1&mute=1"
+                            loading="lazy"
+                            allowfullscreen>
+                         </iframe>
                     </div>
                 `;
                 container.appendChild(card);
                 card.querySelector('.header').onclick = () => toggleActiveChannel(channel.id);
             } else {
-                container.appendChild(card);
+                container.appendChild(card); // Sıralamayı korumak için
             }
 
             if (isActive) {
