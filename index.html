@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eightborn Next MultiLive v15.0</title>
+    <title>Eightborn MultiLive v16.0 - No Reload</title>
     <style>
         :root {
             --bg-color: #0f0f0f;
@@ -37,19 +37,17 @@
         }
         .btn-toggle:hover { background: var(--accent-color); border-color: var(--accent-color); }
 
-        /* --- DRAWER (GPU OPTİMİZE EDİLDİ) --- */
+        /* --- DRAWER (GPU OPTİMİZE) --- */
         #drawer {
             width: var(--drawer-width); height: 100vh; background: #121212;
-            position: fixed; top: 0; left: 0; /* Left sabit kalır */
-            /* Performans için transform kullanılır */
+            position: fixed; top: 0; left: 0;
             transform: translateX(-100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1000; border-right: 1px solid #333;
             display: flex; flex-direction: column;
-            will-change: transform; /* Tarayıcıya ipucu */
+            will-change: transform;
         }
         #drawer.open { transform: translateX(0); }
-
         .drawer-content { padding: 80px 20px 20px 20px; overflow-y: auto; }
         h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #fff; }
 
@@ -78,8 +76,7 @@
         .channel-list-item {
             display: flex; justify-content: space-between; align-items: center;
             background: #1a1a1a; padding: 8px 10px; margin-bottom: 8px; border-radius: 6px;
-            cursor: grab; border: 1px solid transparent;
-            transition: all 0.2s;
+            cursor: grab; border: 1px solid transparent; transition: all 0.2s;
         }
         .channel-list-item:active { cursor: grabbing; }
         .channel-list-item.dragging { opacity: 0.5; border: 1px dashed #666; background: #222; }
@@ -88,7 +85,6 @@
         .channel-list-item.passive .name-text { text-decoration: line-through; color: #777; }
         .item-actions { display: flex; gap: 10px; align-items: center; }
 
-        /* --- BUTONLAR --- */
         .btn-icon {
             background: transparent; border: 1px solid #444; color: #aaa;
             width: 28px; height: 28px; border-radius: 4px; cursor: pointer;
@@ -101,8 +97,7 @@
         #overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.5); z-index: 900;
-            opacity: 0; visibility: hidden;
-            transition: opacity 0.2s ease;
+            opacity: 0; visibility: hidden; transition: opacity 0.2s ease;
         }
         body.drawer-active #overlay { opacity: 1; visibility: visible; }
 
@@ -121,11 +116,12 @@
             background: var(--card-bg); border-radius: 12px; overflow: hidden;
             border: 1px solid #333; transition: all 0.3s ease;
             display: flex; flex-direction: column;
-            /* İçerik değişince repaint'i azalt */
             contain: content;
         }
         .card.active {
-            order: -1; grid-column: 1 / -1; width: 85%; margin: 0 auto 40px auto;
+            /* Odaklanılan kart, CSS Order ile en başa alınır, DOM değişmez! */
+            order: -9999 !important;
+            grid-column: 1 / -1; width: 85%; margin: 0 auto 40px auto;
             border: 2px solid var(--accent-color); z-index: 100;
         }
 
@@ -191,7 +187,6 @@
 </div>
 
 <script>
-    // --- YAYINCI LİSTESİ ---
     const defaultChannels = [
         { name: "Khonus", id: "UCs3th-mToB7w5ffvBH-97YA", visible: true },
         { name: "Yusif Safarov", id: "UC2kycvhXmvbA09MWPGDFDoA", visible: true },
@@ -211,29 +206,20 @@
     let activeChannelId = null;
     let autoRefreshEnabled = localStorage.getItem('eb_auto_refresh') === 'true';
 
-    // --- BAŞLATMA VE ID EŞLEŞTİRME ---
     function initData() {
         const storedData = localStorage.getItem('eb_channels');
         if (storedData) {
             try {
                 let userChannels = JSON.parse(storedData);
-
-                // 1. İsim ve ID Güncellemelerini Uygula (Sync)
                 userChannels.forEach(userChan => {
                     const match = defaultChannels.find(def => def.id === userChan.id);
-                    if (match) {
-                        userChan.name = match.name; // İsmi güncelle
-                    }
+                    if (match) userChan.name = match.name;
                     if (userChan.visible === undefined) userChan.visible = true;
                 });
-
-                // 2. Yeni Kanalları Ekle
                 const newChannels = defaultChannels.filter(def =>
                     !userChannels.some(userChan => userChan.id === def.id)
                 );
-
                 channels = [...userChannels, ...newChannels];
-
             } catch (e) {
                 channels = JSON.parse(JSON.stringify(defaultChannels));
             }
@@ -258,12 +244,10 @@
         localStorage.setItem('eb_auto_refresh', autoRefreshEnabled);
     }
 
-    // --- PERFORMANS OPTİMİZASYONU: KADEMELİ YENİLEME ---
     document.addEventListener("visibilitychange", function() {
         if (document.visibilityState === 'visible' && autoRefreshEnabled) {
             const iframes = document.querySelectorAll('iframe');
             iframes.forEach((iframe, index) => {
-                // Hepsi aynı anda yüklenmesin, 200ms arayla yenile
                 setTimeout(() => {
                     const currentSrc = iframe.src;
                     iframe.src = currentSrc;
@@ -297,11 +281,12 @@
     // --- DRAG & DROP ---
     let dragStartIndex;
 
+    // --- EN KRİTİK BÖLÜM: YAYIN KESİNTİSİZ RENDER ---
     function render() {
         const container = document.getElementById('container');
         const list = document.getElementById('channelList');
 
-        // Liste Render (Sidebar)
+        // 1. Liste Render (Sidebar - Burayı her seferinde yenileyebiliriz, sorun yok)
         list.innerHTML = '';
         channels.forEach((channel, index) => {
             const item = document.createElement('div');
@@ -322,37 +307,54 @@
                     <button class="btn-icon btn-delete" onclick="deleteChannel(${index})" title="Sil">🗑️</button>
                 </div>
             `;
-
             item.addEventListener('dragstart', dragStart);
             item.addEventListener('dragover', dragOver);
             item.addEventListener('drop', drop);
             item.addEventListener('dragenter', dragEnter);
             item.addEventListener('dragleave', dragLeave);
-
             list.appendChild(item);
         });
 
-        // Grid Render (Main Content)
-        const visibleIds = channels.filter(c => c.visible).map(c => c.id);
+        // 2. Grid Render (Yayınlar) - AKILLI GÜNCELLEME
 
-        // Temizlik: Görünür olmayanları DOM'dan kaldır
-        document.querySelectorAll('.card').forEach(card => {
+        // A. Önce silinmesi gerekenleri (visible=false olanları veya listeden çıkanları) bul ve sil
+        const visibleIds = channels.filter(c => c.visible).map(c => c.id);
+        const existingCards = Array.from(document.querySelectorAll('.card'));
+
+        existingCards.forEach(card => {
             const cardId = card.getAttribute('data-id');
-            if (!visibleIds.includes(cardId)) { card.remove(); }
+            // Eğer artık listede yoksa veya gizlendiyse DOM'dan sil
+            if (!visibleIds.includes(cardId)) {
+                card.remove();
+            }
         });
 
-        // Ekleme/Güncelleme
-        channels.forEach(channel => {
-            if (!channel.visible) return;
+        // B. Mevcut kartları güncelle veya yenilerini ekle
+        channels.forEach((channel, index) => {
+            if (!channel.visible) return; // Gizliyse atla
 
             let card = document.querySelector(`.card[data-id="${channel.id}"]`);
             const isActive = (activeChannelId === channel.id);
 
-            if (!card) {
+            // Eğer kart ZATEN VARSA: İçeriğine dokunma! Sadece sırasını ve stilini güncelle.
+            if (card) {
+                // CSS ORDER ile sıralama değiştiriyoruz. DOM'da yerinden oynatmıyoruz.
+                // Böylece iframe RELOAD OLMUYOR!
+                card.style.order = isActive ? -9999 : index;
+
+                if (isActive) card.classList.add('active');
+                else card.classList.remove('active');
+            }
+            // Eğer kart YOKSA: Yeni oluştur.
+            else {
                 card = document.createElement('div');
                 card.className = 'card';
                 card.setAttribute('data-id', channel.id);
-                // PERFORMANS: loading="lazy" eklendi
+                // Yeni oluşurken CSS order veriyoruz
+                card.style.order = isActive ? -9999 : index;
+
+                if (isActive) card.classList.add('active');
+
                 card.innerHTML = `
                     <div class="header">
                         <span class="title-text">${channel.name}</span>
@@ -365,16 +367,9 @@
                          </iframe>
                     </div>
                 `;
+                // Sadece yeni kartı ekle
                 container.appendChild(card);
                 card.querySelector('.header').onclick = () => toggleActiveChannel(channel.id);
-            } else {
-                container.appendChild(card); // Sıralamayı korumak için
-            }
-
-            if (isActive) {
-                card.classList.add('active');
-            } else {
-                card.classList.remove('active');
             }
         });
     }
@@ -397,7 +392,7 @@
         channels.splice(fromIndex, 1);
         channels.splice(toIndex, 0, item);
         saveData();
-        render();
+        render(); // Sadece CSS Order güncellenir, yayın kesilmez!
     }
 
     function addChannel() {
