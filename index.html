@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eightborn MultiLive v16.0 - No Reload</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-src https://www.youtube.com; img-src 'self' data: https://i.ytimg.com;">
+    <title>Eightborn MultiLive v16.1 - Secure</title>
     <style>
         :root {
             --bg-color: #0f0f0f;
@@ -119,7 +120,6 @@
             contain: content;
         }
         .card.active {
-            /* Odaklanılan kart, CSS Order ile en başa alınır, DOM değişmez! */
             order: -9999 !important;
             grid-column: 1 / -1; width: 85%; margin: 0 auto 40px auto;
             border: 2px solid var(--accent-color); z-index: 100;
@@ -187,6 +187,18 @@
 </div>
 
 <script>
+    // --- GÜVENLİK FONKSİYONU: HTML ESCAPE ---
+    // Kullanıcı girişlerini temizler, XSS saldırılarını önler.
+    function escapeHtml(text) {
+        if (!text) return text;
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
     const defaultChannels = [
         { name: "Khonus", id: "UCs3th-mToB7w5ffvBH-97YA", visible: true },
         { name: "Yusif Safarov", id: "UC2kycvhXmvbA09MWPGDFDoA", visible: true },
@@ -278,15 +290,12 @@
         saveData();
     }
 
-    // --- DRAG & DROP ---
     let dragStartIndex;
 
-    // --- EN KRİTİK BÖLÜM: YAYIN KESİNTİSİZ RENDER ---
     function render() {
         const container = document.getElementById('container');
         const list = document.getElementById('channelList');
 
-        // 1. Liste Render (Sidebar - Burayı her seferinde yenileyebiliriz, sorun yok)
         list.innerHTML = '';
         channels.forEach((channel, index) => {
             const item = document.createElement('div');
@@ -294,10 +303,11 @@
             item.draggable = true;
             item.dataset.index = index;
 
+            // GÜVENLİK: escapeHtml kullanımı
             item.innerHTML = `
                 <div style="display:flex; align-items:center; flex:1; overflow:hidden;">
                     <span style="color:#666; margin-right:8px; cursor:grab;">☰</span>
-                    <span class="name-text" style="font-size:13px; font-weight:500; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${channel.name}</span>
+                    <span class="name-text" style="font-size:13px; font-weight:500; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${escapeHtml(channel.name)}</span>
                 </div>
                 <div class="item-actions">
                     <label class="switch" title="${channel.visible ? 'Gizle' : 'Göster'}">
@@ -315,59 +325,51 @@
             list.appendChild(item);
         });
 
-        // 2. Grid Render (Yayınlar) - AKILLI GÜNCELLEME
-
-        // A. Önce silinmesi gerekenleri (visible=false olanları veya listeden çıkanları) bul ve sil
         const visibleIds = channels.filter(c => c.visible).map(c => c.id);
         const existingCards = Array.from(document.querySelectorAll('.card'));
 
         existingCards.forEach(card => {
             const cardId = card.getAttribute('data-id');
-            // Eğer artık listede yoksa veya gizlendiyse DOM'dan sil
             if (!visibleIds.includes(cardId)) {
                 card.remove();
             }
         });
 
-        // B. Mevcut kartları güncelle veya yenilerini ekle
         channels.forEach((channel, index) => {
-            if (!channel.visible) return; // Gizliyse atla
+            if (!channel.visible) return;
 
             let card = document.querySelector(`.card[data-id="${channel.id}"]`);
             const isActive = (activeChannelId === channel.id);
 
-            // Eğer kart ZATEN VARSA: İçeriğine dokunma! Sadece sırasını ve stilini güncelle.
             if (card) {
-                // CSS ORDER ile sıralama değiştiriyoruz. DOM'da yerinden oynatmıyoruz.
-                // Böylece iframe RELOAD OLMUYOR!
                 card.style.order = isActive ? -9999 : index;
-
                 if (isActive) card.classList.add('active');
                 else card.classList.remove('active');
             }
-            // Eğer kart YOKSA: Yeni oluştur.
             else {
                 card = document.createElement('div');
                 card.className = 'card';
                 card.setAttribute('data-id', channel.id);
-                // Yeni oluşurken CSS order veriyoruz
                 card.style.order = isActive ? -9999 : index;
-
                 if (isActive) card.classList.add('active');
+
+                // GÜVENLİK: escapeHtml ve URL encoded ID
+                const safeName = escapeHtml(channel.name);
+                // ID için encodeURIComponent kullanıyoruz ki URL yapısını bozamasın
+                const safeId = encodeURIComponent(channel.id);
 
                 card.innerHTML = `
                     <div class="header">
-                        <span class="title-text">${channel.name}</span>
+                        <span class="title-text">${safeName}</span>
                     </div>
                     <div class="video-wrapper">
                          <iframe
-                            src="https://www.youtube.com/embed/live_stream?channel=${channel.id}&autoplay=1&mute=1"
+                            src="https://www.youtube.com/embed/live_stream?channel=${safeId}&autoplay=1&mute=1"
                             loading="lazy"
                             allowfullscreen>
                          </iframe>
                     </div>
                 `;
-                // Sadece yeni kartı ekle
                 container.appendChild(card);
                 card.querySelector('.header').onclick = () => toggleActiveChannel(channel.id);
             }
@@ -392,7 +394,7 @@
         channels.splice(fromIndex, 1);
         channels.splice(toIndex, 0, item);
         saveData();
-        render(); // Sadece CSS Order güncellenir, yayın kesilmez!
+        render();
     }
 
     function addChannel() {
