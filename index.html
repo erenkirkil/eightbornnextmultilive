@@ -4,147 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; frame-src https://www.youtube.com; img-src 'self' data: https://i.ytimg.com;">
-    <title>Eightborn MultiLive v16.1 - Secure</title>
-    <style>
-        :root {
-            --bg-color: #0f0f0f;
-            --card-bg: #1e1e1e;
-            --accent-color: #4a4a4a;
-            --light-grey: #888;
-            --drawer-width: 320px;
-            --text-color: #e0e0e0;
-            --active-green: #2e7d32;
-        }
+    <title>Eightborn MultiLive - Fan Made</title>
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            display: flex;
-            overflow-x: hidden;
-        }
-
-        /* --- MENÜ BUTONU --- */
-        .btn-toggle {
-            background: rgba(30, 30, 30, 0.9);
-            color: white;
-            position: fixed;
-            top: 20px; left: 20px; z-index: 2000;
-            cursor: pointer; border-radius: 8px; width: 45px; height: 45px;
-            font-size: 24px; border: 1px solid #444;
-            transition: background 0.2s;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-        .btn-toggle:hover { background: var(--accent-color); border-color: var(--accent-color); }
-
-        /* --- DRAWER (GPU OPTİMİZE) --- */
-        #drawer {
-            width: var(--drawer-width); height: 100vh; background: #121212;
-            position: fixed; top: 0; left: 0;
-            transform: translateX(-100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1000; border-right: 1px solid #333;
-            display: flex; flex-direction: column;
-            will-change: transform;
-        }
-        #drawer.open { transform: translateX(0); }
-        .drawer-content { padding: 80px 20px 20px 20px; overflow-y: auto; }
-        h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #fff; }
-
-        /* --- SWITCH --- */
-        .switch { position: relative; display: inline-block; width: 36px; height: 20px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #444; transition: .4s; border-radius: 20px;
-        }
-        .slider:before {
-            position: absolute; content: "";
-            height: 14px; width: 14px; left: 3px; bottom: 3px;
-            background-color: white; transition: .4s; border-radius: 50%;
-        }
-        input:checked + .slider { background-color: var(--active-green); }
-        input:checked + .slider:before { transform: translateX(16px); }
-
-        .setting-row {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 20px; background: #1a1a1a; padding: 10px; border-radius: 6px;
-        }
-
-        /* --- LISTE ÖĞELERİ --- */
-        .channel-list-item {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #1a1a1a; padding: 8px 10px; margin-bottom: 8px; border-radius: 6px;
-            cursor: grab; border: 1px solid transparent; transition: all 0.2s;
-        }
-        .channel-list-item:active { cursor: grabbing; }
-        .channel-list-item.dragging { opacity: 0.5; border: 1px dashed #666; background: #222; }
-        .channel-list-item.drag-over { border-bottom: 2px solid var(--accent-color); }
-        .channel-list-item.passive { opacity: 0.6; background: #141414; }
-        .channel-list-item.passive .name-text { text-decoration: line-through; color: #777; }
-        .item-actions { display: flex; gap: 10px; align-items: center; }
-
-        .btn-icon {
-            background: transparent; border: 1px solid #444; color: #aaa;
-            width: 28px; height: 28px; border-radius: 4px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; transition: all 0.2s;
-        }
-        .btn-delete:hover { border-color: #d32f2f; color: #d32f2f; background: rgba(211, 47, 47, 0.1); }
-
-        /* --- OVERLAY --- */
-        #overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.5); z-index: 900;
-            opacity: 0; visibility: hidden; transition: opacity 0.2s ease;
-        }
-        body.drawer-active #overlay { opacity: 1; visibility: visible; }
-
-        /* --- MAIN CONTENT --- */
-        .main-content { flex: 1; padding: 20px 40px; margin-top: 70px; }
-
-        /* --- GRID --- */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 20px; padding-bottom: 50px;
-        }
-
-        /* --- KART --- */
-        .card {
-            background: var(--card-bg); border-radius: 12px; overflow: hidden;
-            border: 1px solid #333; transition: all 0.3s ease;
-            display: flex; flex-direction: column;
-            contain: content;
-        }
-        .card.active {
-            order: -9999 !important;
-            grid-column: 1 / -1; width: 85%; margin: 0 auto 40px auto;
-            border: 2px solid var(--accent-color); z-index: 100;
-        }
-
-        .header {
-            padding: 12px 15px; background: #252525;
-            display: flex; justify-content: flex-start; align-items: center;
-            font-size: 14px; font-weight: 600; cursor: pointer;
-            border-bottom: 1px solid #333;
-        }
-        .header:hover { background: #333; }
-        .card.active .header { background: var(--accent-color); }
-
-        .video-wrapper { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; }
-        iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
-
-        /* --- FORM --- */
-        .input-group { margin-bottom: 15px; }
-        .input-group label { display: block; margin-bottom: 5px; font-size: 12px; color: #aaa; }
-        input[type="text"] { background: #222; border: 1px solid #444; color: white; padding: 10px; width: 100%; border-radius: 6px; box-sizing: border-box; outline: none; }
-        .btn { width: 100%; padding: 10px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; transition: background 0.2s; }
-        .btn-add { background: var(--accent-color); color: white; }
-        .btn-add:hover { background: #5a5a5a; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -153,7 +15,10 @@
 
 <div id="drawer">
     <div class="drawer-content">
-        <h3>⚙️ Ayarlar</h3>
+        <h3>
+            <span>⚙️ Ayarlar</span>
+            <span class="fan-badge">Fan Made</span>
+        </h3>
         <div class="setting-row">
             <span style="font-size: 13px;">Oto-Yenileme (Sekme Geçişi)</span>
             <label class="switch">
@@ -180,243 +45,44 @@
         <hr style="border: 0; border-top: 1px solid #333; margin: 20px 0;">
         <div id="channelList"></div>
     </div>
+
+    <div class="drawer-footer">
+        <div>Bu proje resmi Eightborn uygulaması değildir.</div>
+        <a href="https://github.com/erenkirkil/eightbornnextmultilive" target="_blank" class="github-btn">
+            <svg height="20" width="20" viewBox="0 0 16 16" fill="white" style="margin-right: 8px;">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+            </svg>
+            GitHub'da İncele
+        </a>
+    </div>
 </div>
 
 <div class="main-content">
     <div class="grid" id="container"></div>
 </div>
 
-<script>
-    // --- GÜVENLİK FONKSİYONU: HTML ESCAPE ---
-    // Kullanıcı girişlerini temizler, XSS saldırılarını önler.
-    function escapeHtml(text) {
-        if (!text) return text;
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
+<div id="editModal" class="modal-overlay">
+    <div class="modal-box">
+        <h3>Kanal Düzenle</h3>
 
-    const defaultChannels = [
-        { name: "Khonus", id: "UCs3th-mToB7w5ffvBH-97YA", visible: true },
-        { name: "Yusif Safarov", id: "UC2kycvhXmvbA09MWPGDFDoA", visible: true },
-        { name: "Sergeant35", id: "UCHQBe54UVzn2rVHVBO1fDmA", visible: true },
-        { name: "syichde", id: "UC5BPd3Zp80IKOCvSV8yWpzg", visible: true },
-        { name: "Nilay", id: "UCzaC5yXSkczTU6vPGP7YIwQ", visible: true },
-        { name: "Pammyyy", id: "UCsX2qg56Lq4BnpnkD25mRnQ", visible: true },
-        { name: "Niyantoo", id: "UCbx7M0pwBKxEKfHqP28R4ZA", visible: true },
-        { name: "Valiancys", id: "UCv0z4ePgLfvNpIuRtyrhFpg", visible: true },
-        { name: "vegoraX", id: "UCr7VUsDp0XEzJ1m-fb2Yvgw", visible: true },
-        { name: "Ewony", id: "UCeq-k9a1UNKTVEFGykaf32w", visible: true },
-        { name: "Egoist Pati GTA", id: "UC1BZdzWiOPY6Mp9hGmj39uA", visible: true },
-        { name: "Miray", id: "UC3yAvcwCHf0SSAVw71nTDTw", visible: true }
-    ];
+        <div class="input-group">
+            <label>Yayıncı İsmi</label>
+            <input type="text" id="editNameInput">
+        </div>
 
-    let channels = [];
-    let activeChannelId = null;
-    let autoRefreshEnabled = localStorage.getItem('eb_auto_refresh') === 'true';
+        <div class="input-group">
+            <label>Kanal ID (UC...)</label>
+            <input type="text" id="editIdInput">
+        </div>
 
-    function initData() {
-        const storedData = localStorage.getItem('eb_channels');
-        if (storedData) {
-            try {
-                let userChannels = JSON.parse(storedData);
-                userChannels.forEach(userChan => {
-                    const match = defaultChannels.find(def => def.id === userChan.id);
-                    if (match) userChan.name = match.name;
-                    if (userChan.visible === undefined) userChan.visible = true;
-                });
-                const newChannels = defaultChannels.filter(def =>
-                    !userChannels.some(userChan => userChan.id === def.id)
-                );
-                channels = [...userChannels, ...newChannels];
-            } catch (e) {
-                channels = JSON.parse(JSON.stringify(defaultChannels));
-            }
-        } else {
-            channels = JSON.parse(JSON.stringify(defaultChannels));
-        }
-        saveData();
-    }
+        <div class="modal-buttons">
+            <button class="btn" style="background: #444; margin-right: 10px;" onclick="closeModal()">İptal</button>
+            <button class="btn btn-add" onclick="saveEditChannel()">Kaydet</button>
+        </div>
+    </div>
+</div>
 
-    function saveData() {
-        localStorage.setItem('eb_channels', JSON.stringify(channels));
-    }
+<script src="script.js"></script>
 
-    window.onload = function() {
-        initData();
-        document.getElementById('autoRefreshToggle').checked = autoRefreshEnabled;
-        render();
-    };
-
-    function toggleAutoRefresh() {
-        autoRefreshEnabled = document.getElementById('autoRefreshToggle').checked;
-        localStorage.setItem('eb_auto_refresh', autoRefreshEnabled);
-    }
-
-    document.addEventListener("visibilitychange", function() {
-        if (document.visibilityState === 'visible' && autoRefreshEnabled) {
-            const iframes = document.querySelectorAll('iframe');
-            iframes.forEach((iframe, index) => {
-                setTimeout(() => {
-                    const currentSrc = iframe.src;
-                    iframe.src = currentSrc;
-                }, index * 200);
-            });
-        }
-    });
-
-    function toggleDrawer() {
-        const drawer = document.getElementById('drawer');
-        const body = document.body;
-        drawer.classList.toggle('open');
-        if(drawer.classList.contains('open')) body.classList.add('drawer-active');
-        else body.classList.remove('drawer-active');
-    }
-
-    function toggleActiveChannel(id) {
-        activeChannelId = (activeChannelId === id) ? null : id;
-        render();
-    }
-
-    function toggleVisibility(index) {
-        channels[index].visible = !channels[index].visible;
-        if (!channels[index].visible && activeChannelId === channels[index].id) {
-            activeChannelId = null;
-        }
-        render();
-        saveData();
-    }
-
-    let dragStartIndex;
-
-    function render() {
-        const container = document.getElementById('container');
-        const list = document.getElementById('channelList');
-
-        list.innerHTML = '';
-        channels.forEach((channel, index) => {
-            const item = document.createElement('div');
-            item.className = `channel-list-item ${!channel.visible ? 'passive' : ''}`;
-            item.draggable = true;
-            item.dataset.index = index;
-
-            // GÜVENLİK: escapeHtml kullanımı
-            item.innerHTML = `
-                <div style="display:flex; align-items:center; flex:1; overflow:hidden;">
-                    <span style="color:#666; margin-right:8px; cursor:grab;">☰</span>
-                    <span class="name-text" style="font-size:13px; font-weight:500; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${escapeHtml(channel.name)}</span>
-                </div>
-                <div class="item-actions">
-                    <label class="switch" title="${channel.visible ? 'Gizle' : 'Göster'}">
-                        <input type="checkbox" onchange="toggleVisibility(${index})" ${channel.visible ? 'checked' : ''}>
-                        <span class="slider"></span>
-                    </label>
-                    <button class="btn-icon btn-delete" onclick="deleteChannel(${index})" title="Sil">🗑️</button>
-                </div>
-            `;
-            item.addEventListener('dragstart', dragStart);
-            item.addEventListener('dragover', dragOver);
-            item.addEventListener('drop', drop);
-            item.addEventListener('dragenter', dragEnter);
-            item.addEventListener('dragleave', dragLeave);
-            list.appendChild(item);
-        });
-
-        const visibleIds = channels.filter(c => c.visible).map(c => c.id);
-        const existingCards = Array.from(document.querySelectorAll('.card'));
-
-        existingCards.forEach(card => {
-            const cardId = card.getAttribute('data-id');
-            if (!visibleIds.includes(cardId)) {
-                card.remove();
-            }
-        });
-
-        channels.forEach((channel, index) => {
-            if (!channel.visible) return;
-
-            let card = document.querySelector(`.card[data-id="${channel.id}"]`);
-            const isActive = (activeChannelId === channel.id);
-
-            if (card) {
-                card.style.order = isActive ? -9999 : index;
-                if (isActive) card.classList.add('active');
-                else card.classList.remove('active');
-            }
-            else {
-                card = document.createElement('div');
-                card.className = 'card';
-                card.setAttribute('data-id', channel.id);
-                card.style.order = isActive ? -9999 : index;
-                if (isActive) card.classList.add('active');
-
-                // GÜVENLİK: escapeHtml ve URL encoded ID
-                const safeName = escapeHtml(channel.name);
-                // ID için encodeURIComponent kullanıyoruz ki URL yapısını bozamasın
-                const safeId = encodeURIComponent(channel.id);
-
-                card.innerHTML = `
-                    <div class="header">
-                        <span class="title-text">${safeName}</span>
-                    </div>
-                    <div class="video-wrapper">
-                         <iframe
-                            src="https://www.youtube.com/embed/live_stream?channel=${safeId}&autoplay=1&mute=1"
-                            loading="lazy"
-                            allowfullscreen>
-                         </iframe>
-                    </div>
-                `;
-                container.appendChild(card);
-                card.querySelector('.header').onclick = () => toggleActiveChannel(channel.id);
-            }
-        });
-    }
-
-    function dragStart() {
-        dragStartIndex = +this.closest('.channel-list-item').dataset.index;
-        this.classList.add('dragging');
-    }
-    function dragOver(e) { e.preventDefault(); }
-    function dragEnter() { this.classList.add('drag-over'); }
-    function dragLeave() { this.classList.remove('drag-over'); }
-    function drop() {
-        const dragEndIndex = +this.dataset.index;
-        swapItems(dragStartIndex, dragEndIndex);
-        this.classList.remove('drag-over');
-        this.classList.remove('dragging');
-    }
-    function swapItems(fromIndex, toIndex) {
-        const item = channels[fromIndex];
-        channels.splice(fromIndex, 1);
-        channels.splice(toIndex, 0, item);
-        saveData();
-        render();
-    }
-
-    function addChannel() {
-        const name = document.getElementById('chanName').value;
-        const id = document.getElementById('chanId').value;
-        if(name && id) {
-            channels.push({name, id, visible: true});
-            saveData();
-            render();
-            document.getElementById('chanName').value = ''; document.getElementById('chanId').value = '';
-        }
-    }
-
-    function deleteChannel(index) {
-        if(confirm('Silmek istediğine emin misin?')) {
-            const idToDelete = channels[index].id;
-            if (activeChannelId === idToDelete) activeChannelId = null;
-            channels.splice(index, 1);
-            saveData();
-            render();
-        }
-    }
-</script>
 </body>
 </html>
