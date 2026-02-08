@@ -6,7 +6,7 @@ Bu proje, Eightborn V sunucusundaki yayıncıları tek bir ekranda toplu halde (
 
 ## ⚠️ Önemli Uyarı
 
-> **"Bu proje hiçbir şekilde para amacı gütmez. Sadece çoklu povları daha rahat izlemek adına tasarlanmıştır."**
+> **"Bu proje resmi Eightborn uygulaması değildir. Tamamen hayran yapımıdır (Fan-made), kar, para amacı gütmez ve açık kaynaklıdır. Sadece çoklu povları daha rahat izlemek adına tasarlanmıştır."**
 
 Bu proje tamamen açık kaynaklıdır, reklam içermez ve herhangi bir gelir modeli bulunmamaktadır. Tüm yayın içerikleri YouTube üzerinden embed (gömülü) oynatıcı aracılığıyla sağlanmakta olup, izlemeler doğrudan ilgili yayıncının kanal istatistiklerine yansımaktadır. 
 
